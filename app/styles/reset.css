@@ -1,0 +1,13 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  list-style-position: inside;
+  text-decoration: none;
+  box-sizing: border-box;
+  border: none;
+  background: none;
+  /* touch-action: manipuation; */ /* buttons are instant, no double tap to zoom ( the device don't wait to check if double tap ) */
+  -webkit-tap-highlight-color: transparent; /* no black "overlay" on tap target */
+  padding: env(safe-area-inset-[side]); /* extend UI into Notch + Home Bar */
+}
