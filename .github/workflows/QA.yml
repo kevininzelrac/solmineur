@@ -1,0 +1,58 @@
+name: Build and Deploy in Stage Environment
+on:
+  push:
+    branches:
+      - QA
+
+jobs:
+  Build-Deploy:
+    runs-on: ubuntu-latest
+    environment: QA
+
+    steps:
+      - name: Checking out code
+        uses: actions/checkout@v4
+
+      - name: Installing Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create .env file
+        run: |
+          echo 'BRANCH_NAME="${{ github.ref_name }}"' >> .env
+
+      - name: Installing Dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Building App
+        run: npm run build
+
+      - name: Deleting devDependencies
+        run: npm prune --omit dev
+
+      - name: Zip Build Package
+        run: zip -r function.zip package.json node_modules build/server .env index.js
+
+      - name: Deploy function.zip to S3
+        run: aws s3 cp function.zip s3://${{ secrets.APP_NAME }}-qa-lambda
+
+      - name: Deploy BackEnd to Lambda
+        run: |
+          aws lambda update-function-code \
+          --function-name ${{ secrets.APP_NAME }}-qa \
+          --s3-bucket ${{ secrets.APP_NAME }}-qa-lambda \
+          --s3-key function.zip
+
+      - name: Deploy Assets to S3 bucket
+        run: aws s3 sync build/client/ s3://${{ secrets.APP_NAME }}-qa-assets --delete
