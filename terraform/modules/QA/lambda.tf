@@ -31,6 +31,15 @@ resource "aws_lambda_permission" "s3_access" {
     source_arn    = aws_s3_bucket.lambda.arn
 }
 
+## GRANT PERMISSIONS TO CLOUDFRONT TO ACCESS LAMBDA FUNCTION
+resource "aws_lambda_permission" "cloudfront" {
+    statement_id  = "AllowCloudFrontAccess"
+    action        = "lambda:InvokeFunctionUrl"
+    function_name = aws_lambda_function.server.function_name
+    principal     = "cloudfront.amazonaws.com"
+    source_arn    = aws_cloudfront_distribution.main.arn
+}
+
 ## CREATE LAMBDA CLOUDWATCH LOGS POLICY
 resource "aws_iam_role_policy" "cloudWatchLogs" {
   name = "cloudWatchLogs"
@@ -49,6 +58,24 @@ resource "aws_iam_role_policy" "cloudWatchLogs" {
   })
 }
 
+##CREATE LAMBDA VPC POLICY
+resource "aws_iam_role_policy" "vpcAccess" {
+  name = "createNetworkInterface"
+  role = aws_iam_role.main.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+        Effect = "Allow",
+        Action = [
+                "ec2:CreateNetworkInterface",
+                "ec2:DeleteNetworkInterface",
+                "ec2:DescribeNetworkInterfaces"
+            ],
+        Resource = "*"
+        }]
+  })
+}
+
 ## CREATE LAMBDA FUNCTION W/ function.zip
 resource "aws_lambda_function" "server" {
   function_name     = "${var.app_name}-${var.environment}"
@@ -63,6 +90,13 @@ resource "aws_lambda_function" "server" {
   handler           = "index.handler"
   timeout           = 10
   memory_size       = 1024
+
+  vpc_config {
+    ipv6_allowed_for_dual_stack = false
+    subnet_ids = data.aws_subnets.default.ids
+    security_group_ids =[aws_security_group.postgres.id]
+    #security_group_ids = data.aws_security_groups.default.ids
+  }
 }
 
 ##CREATE LAMBDA FUNCTION URL
@@ -77,3 +111,40 @@ resource "aws_cloudwatch_log_group" "config" {
   name = "/aws/lambda/${aws_lambda_function.server.function_name}"
   retention_in_days = 14
 }
+
+# ## CREATE LAMBDA FUNCTION URL POLICY
+# resource "aws_iam_role_policy" "invokeFunctionUrl" {
+#   name = "invokeFunctionUrl"
+#   role = aws_iam_role.main.id
+#   policy = jsonencode({
+#     Version = "2012-10-17",
+#     Statement = [
+#       {
+#         Effect = "Allow",
+#         Action = ["lambda:InvokeFunctionUrl"],
+#         Resource = "arn:aws:lambda:${var.aws_region}:${var.account_id}:${aws_lambda_function.server.function_name}"
+#       },
+#     ]
+#   })
+# }
+
+## CREATE function.zip
+# data "archive_file" "lambda_zip" {
+#   type = "zip"
+#   source_dir  = ".${path.module}/"
+#   output_path = ".${path.module}/function.zip"
+#   excludes = [ 
+#     "app", 
+#     "build/client", 
+#     "prisma",
+#     "public",
+#     "terraform",
+#     ".eslintrc.cjs",
+#     ".gitignore",
+#     ".github",
+#     "package-lock.json",
+#     "README.md",
+#     "tsconfig.json",
+#     "vite.config.ts",
+#     ]
+# }

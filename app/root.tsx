@@ -7,6 +7,7 @@ import {
 } from "@remix-run/react";
 
 import links from "./styles/index";
+import Nav from "./components/nav";
 export { links };
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <h1>Sol Mineur</h1>
+        <Nav />
         {children}
         <ScrollRestoration />
         <Scripts />
