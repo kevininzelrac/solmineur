@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  email         String          @unique
+  fullname      String          @unique
+  firstname     String
+  lastname      String
+  avatar        String
+  credential    Credential?
+  refreshToken  RefreshToken[]
+  role          Role            @default(BASIC)
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  @@index([email])
+  @@unique([firstname, lastname])
+}
+
+model Credential {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  passwordHash  String?
+  userId        String    @db.Uuid @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model RefreshToken {
+  id      String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId  String  @db.Uuid
+  token   String  @unique
+  revoked Boolean @default(false)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+}
+
+model Post {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String    @unique
+  content       String
+  status        Status    @default(DRAFT)
+  audience      Audience  @default(PRIVATE)
+  createdAt     DateTime  @default(now()) 
+  updatedAt     DateTime  @updatedAt
+  author        User      @relation(fields: [authorId], references: [id])
+  authorId      String    @db.Uuid
+  category      Category  @relation(fields: [categoryTitle], references: [title], onDelete: Cascade, onUpdate: Cascade)
+  categoryTitle String    @default("default")
+  type          Type      @relation(fields: [typeTitle], references: [title])
+  typeTitle     String    @default("post")
+  comments      Comment[]
+  likes         Like[]
+  @@unique([title, typeTitle, categoryTitle])
+}
+
+model Category {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title     String    @unique @default("default")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  posts     Post[]   
+  typeTitle String    @default("post")   
+  type      Type      @relation(fields: [typeTitle], references: [title])
+  @@unique([title, typeTitle])
+}
+
+model Type {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String    @unique @default("post") 
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  posts       Post[]
+  categories  Category[]
+
+  @@index([title])
+}
+
+model Comment {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  status    Status    @default(DRAFT)
+  postId    String    @db.Uuid
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  authorId  String    @db.Uuid
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  parentId  String?   @db.Uuid
+  likes     Like[]
+}
+
+model Like {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  postId    String?   @db.Uuid
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  commentId String?   @db.Uuid
+  comment   Comment?  @relation(fields: [commentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  authorId  String    @db.Uuid
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([postId, authorId])
+  @@unique([commentId, authorId])
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  BASIC
+  FOLLOWER
+}
+
+enum Status {
+  DRAFT
+  PUBLISHED
+}
+
+enum Audience {
+  PUBLIC
+  PRIVATE
+}
