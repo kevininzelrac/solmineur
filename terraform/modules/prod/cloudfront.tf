@@ -74,12 +74,6 @@ resource "aws_cloudfront_distribution" "main" {
         cache_policy_id             = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
         origin_request_policy_id    = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
         smooth_streaming            = false
-
-        lambda_function_association {
-            event_type   = "origin-request"
-            lambda_arn   = "arn:aws:lambda:us-east-1:${var.account_id}:function:sign_cloudfront_request:1"
-            include_body = false
-        }
     }
 
     ##CREATE ASSETS CACHE BEHAVIOR

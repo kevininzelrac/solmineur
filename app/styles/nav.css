@@ -1,0 +1,19 @@
+nav {
+  width: fit-content;
+  display: flex;
+  gap: 1rem;
+}
+
+nav > a {
+  color: var(--secondary);
+  font-weight: 700;
+}
+
+nav > a:hover:not(.active) {
+  color: var(--primary);
+  opacity: 0.8;
+}
+
+nav > a.active {
+  color: var(--primary);
+}
