@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16.2
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=UreWelcome
+      - POSTGRES_USER=root
+      - POSTGRES_DB=postgres
+
+volumes:
+  postgres_db:
